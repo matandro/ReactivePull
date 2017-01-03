@@ -4,17 +4,20 @@ import bgu.cbs.reactivePull.SubConscience.SubConscience;
 import bgu.cbs.reactivePull.memory.MemoryPull;
 
 import java.util.Map;
+import java.util.Random;
 
 /**
  * Pulls context requests by selecting a single word from a pull.
  * The selection is done using the distribution of scores
  */
-public class RandomWalkMSConceptsSubConscience implements SubConscience<String> {
+public class DistributionWalkMSConceptsSubConscience implements SubConscience<String> {
     private MemoryPull<Map<String, Double>, String> memory;
     private static final long WAIT_TIME = 10000;
+    private final Random random;
     private String word;
 
-    public RandomWalkMSConceptsSubConscience(MemoryPull<Map<String, Double>, String> memory) {
+    public DistributionWalkMSConceptsSubConscience(MemoryPull<Map<String, Double>, String> memory, Random random) {
+        this.random = random;
         this.memory = memory;
         word = null;
     }
@@ -50,11 +53,11 @@ public class RandomWalkMSConceptsSubConscience implements SubConscience<String> 
         for (Double val : conceptMap.values()) {
             sum += val;
         }
-        double selction = sum * Math.random();
+        double selection = sum * random.nextDouble();
         sum = 0.0;
         for (Map.Entry<String, Double> entry : conceptMap.entrySet()) {
             sum += entry.getValue();
-            if (sum < selction) {
+            if (sum < selection) {
                 return entry.getKey();
             }
         }
