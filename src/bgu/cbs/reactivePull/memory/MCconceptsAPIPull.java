@@ -169,42 +169,60 @@ public class MCconceptsAPIPull implements MemoryPull<Map<String, Double>, String
     }
 
     public synchronized Map<String, Double> queryCache(Map<String, Double> currentPull) {
-        Map<String, Double> res = new HashMap<>();
+        Map<String, Double> res = null;
 
-        synchronized (this) {
-            // Update cache and result set
+        if (memoryCache.isEmpty()) {
+            for (Map.Entry<String, Double> entry : currentPull.entrySet()) {
+                memoryCache.put(entry.getKey(), entry.getValue());
+            }
+            res = currentPull;
+        } else {
+            res = new HashMap<>(TOP_K);
+            Double newSum = 0.0;
+            // Add new values and calculate sum
             for (Map.Entry<String, Double> entry : currentPull.entrySet()) {
                 Double tempProb;
+                Double newValue = entry.getValue();
                 if ((tempProb = memoryCache.get(entry.getKey())) != null) {
-                    Double newValue = tempProb * entry.getValue();
-                    memoryCache.put(entry.getKey(), newValue);
-                    res.put(entry.getKey(), newValue);
-                } else {
-                    res.put(entry.getKey(), entry.getValue());
-                    memoryCache.put(entry.getKey(), entry.getValue());
+                    newValue += tempProb;
                 }
+                newSum += newValue;
+                memoryCache.put(entry.getKey(), newValue);
+                res.put(entry.getKey(), newValue);
             }
-            // Keep only top cache results
-            while (memoryCache.size() > MAX_CACHE_SIZE) {
+            // Fix res to sum to 1
+            for (Map.Entry<String, Double> entry : res.entrySet()) {
+                res.put(entry.getKey(), entry.getValue() / newSum);
+            }
+            // Remove stuff from queue (up to 25 items) can be done more efficiently with quickselect
+            // On the first run (if we are lower then 25) we just calculate sum
+            do  {
+                newSum = 0.0;
                 double min = 1.0;
                 String key = null;
                 for (Map.Entry<String, Double> entry : memoryCache.entrySet()) {
+                    newSum += entry.getValue();
                     if (entry.getValue() < min) {
                         min = entry.getValue();
                         key = entry.getKey();
                     }
                 }
-                memoryCache.remove(key);
+                if (memoryCache.size() > MAX_CACHE_SIZE) {
+                    memoryCache.remove(key);
+                }
+            } while(memoryCache.size() > MAX_CACHE_SIZE);
+            // Fix memory cache to sum 1
+            for (Map.Entry<String, Double> entry : memoryCache.entrySet()) {
+                memoryCache.put(entry.getKey(), entry.getValue() / newSum);
             }
         }
-
         return res;
     }
 
 
-
     private Map<String, Double> analyzeJason(String result) {
-        Type type = new TypeToken<Map<String, Double>>(){}.getType();
+        Type type = new TypeToken<Map<String, Double>>() {
+        }.getType();
         Map<String, Double> res = null;
         Gson gson = new GsonBuilder().create();
         res = gson.fromJson(result, type);
@@ -220,7 +238,7 @@ public class MCconceptsAPIPull implements MemoryPull<Map<String, Double>, String
             res.add(new BasicNameValuePair("pmlK", Double.toString(PMIK)));
         if (ptype != Ptype.PCE)
             res.add(new BasicNameValuePair("smooth", Double.toString(SMOOTH)));
-        res.add(new BasicNameValuePair("api_key",API_KEY));
+        res.add(new BasicNameValuePair("api_key", API_KEY));
         return res;
     }
 

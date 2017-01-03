@@ -6,7 +6,8 @@ import bgu.cbs.reactivePull.memory.MemoryPull;
 import java.util.Map;
 
 /**
- * Created by matan on 1/2/2017.
+ * Pulls context requests by selecting a single word from a pull.
+ * The selection is done using the distribution of scores
  */
 public class RandomWalkMSConceptsSubConscience implements SubConscience<String> {
     private MemoryPull<Map<String, Double>, String> memory;
@@ -34,6 +35,7 @@ public class RandomWalkMSConceptsSubConscience implements SubConscience<String> 
     @Override
     public void updateSubconscience(String s) {
         if (word == null) {
+            // Start the walk from a random cache selection
             Map<String,Double> cacheImage = memory.getCache();
             if (cacheImage != null && cacheImage.size() > 0) {
                 word = selectRandom(cacheImage);
