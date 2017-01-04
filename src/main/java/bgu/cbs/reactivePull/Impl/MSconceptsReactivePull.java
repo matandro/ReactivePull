@@ -1,6 +1,7 @@
 package bgu.cbs.reactivePull.Impl;
 
 import bgu.cbs.reactivePull.Conscience.Conscience;
+import bgu.cbs.reactivePull.Impl.Conscience.MCConceptsDistributionConscience;
 import bgu.cbs.reactivePull.Impl.Conscience.MCConceptsMaxConscience;
 import bgu.cbs.reactivePull.Impl.SubConscience.MSconceptsSubConscienceFactory;
 import bgu.cbs.reactivePull.SubConscience.SubConscienceFactory;
@@ -20,6 +21,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class MSconceptsReactivePull {
     public static void main (String[] args) {
+        // Setup memory pool
+        MemoryPull<Map<String,Double>, String> memory = null;
         int noThreads = -1;
         String subConscinceType = null;
         String ptypeStr = null;
@@ -27,20 +30,20 @@ public class MSconceptsReactivePull {
             ptypeStr = args[0];
             noThreads = Integer.valueOf(args[1]);
             subConscinceType = args[2];
+            memory = new MCconceptsAPIPull(ptypeStr);
         } catch (Exception e) {
             use();
             System.exit(-1);
         }
 
-        // Setup memory pool
-        MemoryPull<Map<String,Double>, String> memory = new MCconceptsAPIPull(ptypeStr);
-
         // init conscience
-        Conscience<String, String> decisionMaker = new MCConceptsMaxConscience(memory);
+        Conscience<String, String> decisionMaker = new MCConceptsMaxConscience(memory);//new MCConceptsDistributionConscience(memory);
 
         // Init sub consciences
         SubConscienceFactory<String> subConscienceFactory = new MSconceptsSubConscienceFactory(memory);
-        ExecutorService executor = Executors.newFixedThreadPool(noThreads);
+        ExecutorService executor = null;
+        if (noThreads > 0)
+            Executors.newFixedThreadPool(noThreads);
         for (int i = 0 ; i < noThreads ; ++i) {
             executor.submit(subConscienceFactory.makeSubConscience(subConscinceType));
         }

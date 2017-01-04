@@ -1,5 +1,6 @@
 package bgu.cbs.reactivePull.memory;
 
+import bgu.cbs.reactivePull.Impl.LogSingleton;
 import bgu.cbs.reactivePull.Impl.misc.ResultList;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -120,7 +121,7 @@ public class MCconceptsAPIPull implements MemoryPull<Map<String, Double>, String
         Map<String, Double> res = null;
 
         try {
-            System.out.println("Starting pull thread(" + Thread.currentThread().getName() + "): " + input);
+            LogSingleton.getInstance().println("Starting pull: " + input);
             // Setup API call
             String urlStr = API_ADDRESS_PREFIX + Ptype.getAPIPtypeName(this.ptype);
             urlStr += "?" + URLEncodedUtils.format(addInfo(input), "utf8");
@@ -147,7 +148,7 @@ public class MCconceptsAPIPull implements MemoryPull<Map<String, Double>, String
             while ((line = br.readLine()) != null) {
                 result += line + "\n";
             }
-            System.out.println("Pull complete thread(" + Thread.currentThread().getName() + "): " + input);
+            LogSingleton.getInstance().println("Pull complete: " + input);
             // Analyze json
             res = analyzeJason(result);
             // Advise Cache
@@ -170,6 +171,8 @@ public class MCconceptsAPIPull implements MemoryPull<Map<String, Double>, String
 
     public synchronized Map<String, Double> queryCache(Map<String, Double> currentPull) {
         Map<String, Double> res = null;
+        LogSingleton.getInstance().println("MemoryCache before: " + memoryCache);
+        LogSingleton.getInstance().println("Before thread: " + currentPull);
 
         if (memoryCache.isEmpty()) {
             for (Map.Entry<String, Double> entry : currentPull.entrySet()) {
@@ -194,8 +197,8 @@ public class MCconceptsAPIPull implements MemoryPull<Map<String, Double>, String
             for (Map.Entry<String, Double> entry : res.entrySet()) {
                 res.put(entry.getKey(), entry.getValue() / newSum);
             }
-            // Remove stuff from queue (up to 25 items) can be done more efficiently with quickselect
-            // On the first run (if we are lower then 25) we just calculate sum
+            /* Remove stuff from queue (up to 25 items) can be done more efficiently with quickselect
+             On the first run (if we are lower then 25) we just calculate sum*/
             do  {
                 newSum = 0.0;
                 double min = 1.0;
@@ -216,6 +219,8 @@ public class MCconceptsAPIPull implements MemoryPull<Map<String, Double>, String
                 memoryCache.put(entry.getKey(), entry.getValue() / newSum);
             }
         }
+        LogSingleton.getInstance().println("MemoryCache After: " + memoryCache);
+        LogSingleton.getInstance().println("After: " + res);
         return res;
     }
 
