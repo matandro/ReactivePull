@@ -39,14 +39,12 @@ public class LogSingleton {
         String thread = Thread.currentThread().getName();
         String time = sdf.format(new Date());
         StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-        StackTraceElement callingFunc = stackTraceElements[stackTraceElements.length - 3];
+        StackTraceElement callingFunc = stackTraceElements[3];
 
         return time + " [" + thread + "] - [" + callingFunc.getClassName() + "." + callingFunc.getMethodName() + ":" + callingFunc.getLineNumber() + "]: ";
     }
 
     public void println(String msg) {
-        String thread = Thread.currentThread().getName();
-
         pw.println(getPretext() + msg);
         pw.flush();
     }

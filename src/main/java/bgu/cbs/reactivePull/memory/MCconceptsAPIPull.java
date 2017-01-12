@@ -1,7 +1,7 @@
 package bgu.cbs.reactivePull.memory;
 
 import bgu.cbs.reactivePull.Impl.LogSingleton;
-import bgu.cbs.reactivePull.Impl.misc.ResultList;
+import bgu.cbs.reactivePull.Impl.misc.Pair;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -14,15 +14,13 @@ import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by matan on 1/2/2017.
@@ -42,7 +40,7 @@ public class MCconceptsAPIPull implements MemoryPull<Map<String, Double>, String
     private final double SMOOTH = 0.0;
 
     private Map<String, Double> memoryCache = new HashMap<>();
-    private final int MAX_CACHE_SIZE = 25;
+    private final int MAX_CACHE_SIZE = 10;
 
     public enum Ptype {
         PCE,
@@ -151,8 +149,12 @@ public class MCconceptsAPIPull implements MemoryPull<Map<String, Double>, String
             LogSingleton.getInstance().println("Pull complete: " + input);
             // Analyze json
             res = analyzeJason(result);
+            LogSingleton.getInstance().println("Pool results: " + res);
+            if (res != null && !res.isEmpty()) {
             // Advise Cache
-            res = queryCache(res);
+                res = queryCache(res);
+            }
+            LogSingleton.getInstance().println("Result in context: " + res);
         } catch (MalformedURLException e) {
             e.printStackTrace();
         } catch (ClientProtocolException e) {
@@ -172,7 +174,6 @@ public class MCconceptsAPIPull implements MemoryPull<Map<String, Double>, String
     public synchronized Map<String, Double> queryCache(Map<String, Double> currentPull) {
         Map<String, Double> res = null;
         LogSingleton.getInstance().println("MemoryCache before: " + memoryCache);
-        LogSingleton.getInstance().println("Before thread: " + currentPull);
 
         if (memoryCache.isEmpty()) {
             for (Map.Entry<String, Double> entry : currentPull.entrySet()) {
@@ -180,7 +181,6 @@ public class MCconceptsAPIPull implements MemoryPull<Map<String, Double>, String
             }
             res = currentPull;
         } else {
-            res = new HashMap<>(TOP_K);
             Double newSum = 0.0;
             // Add new values and calculate sum
             for (Map.Entry<String, Double> entry : currentPull.entrySet()) {
@@ -191,39 +191,52 @@ public class MCconceptsAPIPull implements MemoryPull<Map<String, Double>, String
                 }
                 newSum += newValue;
                 memoryCache.put(entry.getKey(), newValue);
-                res.put(entry.getKey(), newValue);
             }
-            // Fix res to sum to 1
-            for (Map.Entry<String, Double> entry : res.entrySet()) {
-                res.put(entry.getKey(), entry.getValue() / newSum);
+            // get only the top MAX_CACHE_SIZE items
+            memoryCache = getTopK(memoryCache, MAX_CACHE_SIZE);
+            newSum = 0.0;
+            for (Map.Entry<String, Double> entry : memoryCache.entrySet()) {
+                newSum += entry.getValue();
             }
-            /* Remove stuff from queue (up to 25 items) can be done more efficiently with quickselect
-             On the first run (if we are lower then 25) we just calculate sum*/
-            do  {
-                newSum = 0.0;
-                double min = 1.0;
-                String key = null;
-                for (Map.Entry<String, Double> entry : memoryCache.entrySet()) {
-                    newSum += entry.getValue();
-                    if (entry.getValue() < min) {
-                        min = entry.getValue();
-                        key = entry.getKey();
-                    }
-                }
-                if (memoryCache.size() > MAX_CACHE_SIZE) {
-                    memoryCache.remove(key);
-                }
-            } while(memoryCache.size() > MAX_CACHE_SIZE);
             // Fix memory cache to sum 1
             for (Map.Entry<String, Double> entry : memoryCache.entrySet()) {
                 memoryCache.put(entry.getKey(), entry.getValue() / newSum);
             }
+            // get ready results
+            res = getTopK(memoryCache, TOP_K);
         }
         LogSingleton.getInstance().println("MemoryCache After: " + memoryCache);
-        LogSingleton.getInstance().println("After: " + res);
         return res;
     }
 
+    private Map<String, Double> getTopK(Map<String, Double> memoryCache, int amount) {
+        Map<String, Double> res = new HashMap<>(amount);
+        LinkedList<Pair<String, Double>> topTen = new LinkedList<>();
+        // find top ten
+        for (Map.Entry<String, Double> entry : memoryCache.entrySet()) {
+            int i = 0;
+            for (; i < topTen.size(); ++i) {
+                if (entry.getValue() < topTen.get(i).getRight()) {
+                    break;
+                }
+            }
+            if (i > 0) {
+                if (topTen.size() >= amount) {
+                    topTen.removeFirst();
+                }
+                topTen.add(i - 1, new Pair<>(entry.getKey(), entry.getValue()));
+            } else if (topTen.size() < amount) {
+                topTen.addFirst(new Pair<>(entry.getKey(), entry.getValue()));
+            }
+        }
+        double testSum = 0.0;
+        // copy top / bottom amount
+        for (Pair<String, Double> pair : topTen) {
+            res.put(pair.getLeft(), pair.getRight());
+            testSum += pair.getRight();
+        }
+        return res;
+    }
 
     private Map<String, Double> analyzeJason(String result) {
         Type type = new TypeToken<Map<String, Double>>() {

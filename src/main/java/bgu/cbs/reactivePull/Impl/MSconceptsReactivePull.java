@@ -43,7 +43,7 @@ public class MSconceptsReactivePull {
         SubConscienceFactory<String> subConscienceFactory = new MSconceptsSubConscienceFactory(memory);
         ExecutorService executor = null;
         if (noThreads > 0)
-            Executors.newFixedThreadPool(noThreads);
+            executor = Executors.newFixedThreadPool(noThreads);
         for (int i = 0 ; i < noThreads ; ++i) {
             executor.submit(subConscienceFactory.makeSubConscience(subConscinceType));
         }
@@ -54,8 +54,10 @@ public class MSconceptsReactivePull {
             while ((line = br.readLine()) != null) {
                 if ("exit".equals(line)) {
                     System.out.println("Exiting...");
-                    executor.shutdownNow();
-                    executor.awaitTermination(5, TimeUnit.SECONDS);
+                    if (executor != null) {
+                        executor.shutdownNow();
+                        executor.awaitTermination(5, TimeUnit.SECONDS);
+                    }
                     break;
                 }
                 System.out.println(decisionMaker.MakeDecision(line));
