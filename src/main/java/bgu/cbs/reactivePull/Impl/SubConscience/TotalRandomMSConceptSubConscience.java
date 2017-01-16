@@ -10,16 +10,18 @@ import java.util.Random;
  * Pulls context requests by selecting a single word from a pull.
  * The selection is done using the distribution of scores
  */
-public class DistributionWalkMSConceptsSubConscience implements SubConscience<String> {
+public class TotalRandomMSConceptSubConscience implements SubConscience<String> {
     private MemoryPull<Map<String, Double>, String> memory;
     private static final long WAIT_TIME = 10000;
     private final Random random;
     private String word;
+    private double alpha;	
 
-    public DistributionWalkMSConceptsSubConscience(MemoryPull<Map<String, Double>, String> memory, Random random) {
+    public TotalRandomMSConceptSubConscience(MemoryPull<Map<String, Double>, String> memory, Random random, double alpha) {
         this.random = random;
         this.memory = memory;
         word = null;
+        this.alpha = alpha;
     }
 
     @Override
@@ -44,7 +46,7 @@ public class DistributionWalkMSConceptsSubConscience implements SubConscience<St
                 word = selectRandom(cacheImage);
             }
         } else {
-            word = selectRandom(memory.getByConnection(word));
+            word = selectRandom(memory.getByConnection(word, alpha));
         }
     }
 
@@ -62,6 +64,6 @@ public class DistributionWalkMSConceptsSubConscience implements SubConscience<St
             }
         }
         return null;
-*/      return conceptMap.keySet().toArray(new String[1])[random.nextInt(10)];
+*/      return conceptMap.keySet().toArray(new String[1])[random.nextInt(conceptMap.size())];
     }
 }

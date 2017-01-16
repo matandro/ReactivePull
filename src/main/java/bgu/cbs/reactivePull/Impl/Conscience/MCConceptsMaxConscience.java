@@ -20,7 +20,7 @@ public class MCConceptsMaxConscience implements Conscience<String, String> {
     public String MakeDecision(String t) {
         double max = 0.0;
         String res = null;
-        for (Map.Entry<String, Double> entry : memory.getByConnection(t).entrySet()) {
+        for (Map.Entry<String, Double> entry : memory.getByConnection(t, 1).entrySet()) {
             if (entry.getValue() > max) {
                 max = entry.getValue();
                 res = entry.getKey();

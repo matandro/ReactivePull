@@ -23,7 +23,7 @@ public class MCConceptsDistributionConscience implements Conscience<String, Stri
         double sum = 0.0;
         double random = this.random.nextDouble();
         String res = null;
-        for (Map.Entry<String, Double> entry : memory.getByConnection(t).entrySet()) {
+        for (Map.Entry<String, Double> entry : memory.getByConnection(t, 1).entrySet()) {
             sum += entry.getValue();
             if (random >= sum) {
                 res = entry.getKey();

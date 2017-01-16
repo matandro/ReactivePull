@@ -21,7 +21,7 @@ public class MSconceptsSubConscienceFactory implements SubConscienceFactory<Stri
 
     @Override
     public SubConscience makeSubConscience(String selectionMethod) {
-        SubConscience<String> subConscience = new DistributionWalkMSConceptsSubConscience(memory, myRandom);
+        SubConscience<String> subConscience = new DistributionWalkMSConceptsSubConscience(memory, myRandom, 0.25);
         return subConscience;
     }
 }

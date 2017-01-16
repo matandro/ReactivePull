@@ -15,11 +15,13 @@ public class DistributionWalkMSConceptsSubConscience implements SubConscience<St
     private static final long WAIT_TIME = 10000;
     private final Random random;
     private String word;
+    private double alpha;
 
-    public DistributionWalkMSConceptsSubConscience(MemoryPull<Map<String, Double>, String> memory, Random random) {
+    public DistributionWalkMSConceptsSubConscience(MemoryPull<Map<String, Double>, String> memory, Random random, double alpha) {
         this.random = random;
         this.memory = memory;
         word = null;
+    	this.alpha = alpha;
     }
 
     @Override
@@ -44,12 +46,12 @@ public class DistributionWalkMSConceptsSubConscience implements SubConscience<St
                 word = selectRandom(cacheImage);
             }
         } else {
-            word = selectRandom(memory.getByConnection(word));
+            word = selectRandom(memory.getByConnection(word, alpha));
         }
     }
 
     private String selectRandom(Map<String, Double> conceptMap) {
-/*        double sum = 0.0;
+        double sum = 0.0;
         for (Double val : conceptMap.values()) {
             sum += val;
         }
@@ -62,6 +64,5 @@ public class DistributionWalkMSConceptsSubConscience implements SubConscience<St
             }
         }
         return null;
-*/      return conceptMap.keySet().toArray(new String[1])[random.nextInt(10)];
     }
 }

@@ -115,7 +115,7 @@ public class MCconceptsAPIPull implements MemoryPull<Map<String, Double>, String
     private static final Integer RESPONSE_OK = 200;
 
     @Override
-    public Map<String, Double> getByConnection(String input) {
+    public Map<String, Double> getByConnection(String input, double alpha) {
         Map<String, Double> res = null;
 
         try {
@@ -152,7 +152,7 @@ public class MCconceptsAPIPull implements MemoryPull<Map<String, Double>, String
             LogSingleton.getInstance().println("Pool results: " + res);
             if (res != null && !res.isEmpty()) {
             // Advise Cache
-                res = queryCache(res);
+                res = queryCache(res, alpha);
             }
             LogSingleton.getInstance().println("Result in context: " + res);
         } catch (MalformedURLException e) {
@@ -171,7 +171,7 @@ public class MCconceptsAPIPull implements MemoryPull<Map<String, Double>, String
         return new HashMap<>(memoryCache);
     }
 
-    public synchronized Map<String, Double> queryCache(Map<String, Double> currentPull) {
+    public synchronized Map<String, Double> queryCache(Map<String, Double> currentPull, double alpha) {
         Map<String, Double> res = null;
         LogSingleton.getInstance().println("MemoryCache before: " + memoryCache);
 
@@ -189,7 +189,7 @@ public class MCconceptsAPIPull implements MemoryPull<Map<String, Double>, String
                 if ((tempProb = memoryCache.get(entry.getKey())) != null) {
                     newValue += tempProb;
                 }
-                newSum += newValue;
+                newSum += (newValue * alpha);
                 memoryCache.put(entry.getKey(), newValue);
             }
             // get only the top MAX_CACHE_SIZE items
